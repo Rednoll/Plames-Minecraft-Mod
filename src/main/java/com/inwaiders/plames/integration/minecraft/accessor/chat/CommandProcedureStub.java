@@ -13,11 +13,11 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
 
-public class CommandStub extends CommandBase {
+public class CommandProcedureStub extends CommandBase {
 
 	private String name = null;
 	
-	public CommandStub(String name) {
+	public CommandProcedureStub(String name) {
 	
 		this.name = name;
 	}
@@ -33,7 +33,7 @@ public class CommandStub extends CommandBase {
 			
 			UUID uuid = player.getGameProfile().getId();
 			String playerName = player.getGameProfile().getName();
-			String message = ("/"+name+" "+String.join(" ", args)).trim();
+			String message = String.join(" ", args).trim();
 
 			ReCraftAccessor.executorService.submit(()-> {
 				

@@ -4,18 +4,27 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.AllPlayersCountHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.CheckOnlineHandler;
@@ -125,6 +134,44 @@ public class ReCraftHttpConnector {
 			
 			return false;
 		}
+	}
+	
+	public static List<String> requestCommandsAliases() {
+		
+		List<String> result = new ArrayList<>();
+		
+    	CloseableHttpClient httpClient = (CloseableHttpClient) HttpClients.createDefault();
+    	
+    	HttpGet get = new HttpGet(getMethodUrl("api/minecraft/ajax/commands"));
+	
+    	try {
+    		
+			CloseableHttpResponse response = httpClient.execute(get);
+		
+	    		HttpEntity entity = response.getEntity();
+	    		
+	    		String rawData = EntityUtils.toString(entity);
+	  
+	    		EntityUtils.consume(entity);
+	    		
+	    	JsonArray array = new JsonParser().parse(rawData).getAsJsonArray();
+	    	
+	    	for(JsonElement element : array) {
+	    		
+	    		String commnadAliase = element.getAsString();
+	    	
+	    		result.add(commnadAliase);
+	    	}
+	    	
+    	}
+    	catch (ClientProtocolException e) {
+			e.printStackTrace();
+		}
+    	catch (IOException e) {
+			e.printStackTrace();
+    	}
+    	
+    	return result;
 	}
 	
 	private static String getMethodUrl(String methodName) {

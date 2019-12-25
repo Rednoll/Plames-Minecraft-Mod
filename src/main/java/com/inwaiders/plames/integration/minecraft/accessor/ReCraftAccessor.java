@@ -4,12 +4,16 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.JsonParser;
+import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandProcedureStub;
 import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandStub;
 import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressBegin;
@@ -18,6 +22,8 @@ import com.inwaiders.plames.integration.minecraft.stress.CommandStressProfilesCo
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressSpeed;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressStop;
 
+import net.minecraft.item.Item;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -138,7 +144,14 @@ public class ReCraftAccessor {
     @EventHandler
     public void serverInit(FMLServerStartingEvent event){
     	
-    	event.registerServerCommand(new CommandStub("m"));
+    	List<String> commandsAliases = ReCraftHttpConnector.requestCommandsAliases();
+    	
+    	for(String commandAliase : commandsAliases) {
+    		
+    		event.registerServerCommand(new CommandStub(commandAliase));
+    	}
+    	
+    	event.registerServerCommand(new CommandProcedureStub("m"));
     	
     	//stress
     	event.registerServerCommand(new CommandStressBegin());
@@ -146,5 +159,49 @@ public class ReCraftAccessor {
     	event.registerServerCommand(new CommandStressProfilesCount());
     	event.registerServerCommand(new CommandStressSpeed());
     	event.registerServerCommand(new CommandStressStop());
+    }
+    
+    @EventHandler
+    public void parsingItems(FMLServerStartingEvent event) {
+    	
+    	try {
+    		
+    		Set<ResourceLocation> keys = Item.REGISTRY.getKeys();
+    		
+			for(ResourceLocation key : keys) {
+				
+				Item item = Item.REGISTRY.getObject(key);
+				
+				String unlocalizedName = item.getUnlocalizedName();
+				
+				if(unlocalizedName.startsWith("item")) {
+				
+					System.out.println("name: "+normalizeItemName(key.getResourcePath()));
+					System.out.println(key.getResourceDomain()+":"+key.getResourcePath());
+				}
+			}
+    	}
+    	catch(SecurityException e) {
+			
+			e.printStackTrace();
+		}
+    	catch (IllegalArgumentException e) {
+			
+			e.printStackTrace();
+		}
+    }
+    
+    public String normalizeItemName(String name) {
+    	
+    	String[] words = name.split("_");
+    
+    	for(int i = 0; i<words.length; i++) {
+    		
+    		if(words[i].toLowerCase().contains("item") || words[i].toLowerCase().contains("block")) continue;
+    		
+    		words[i] = (words[i].charAt(0)+"").toUpperCase()+words[i].substring(1);
+    	}
+    	
+    	return String.join(" ", words);
     }
 }
