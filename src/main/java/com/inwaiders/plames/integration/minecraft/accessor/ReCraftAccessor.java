@@ -189,6 +189,8 @@ public class ReCraftAccessor {
 			
 			e.printStackTrace();
 		}
+    	
+    	MarketDataUtilsTest.test();
     }
     
     public String normalizeItemName(String name) {

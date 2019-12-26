@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.inwaiders.plames.integration.minecraft.accessor.MarketDataUtils;
 import com.inwaiders.plames.integration.minecraft.accessor.PlayerUtils;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
 import com.inwaiders.plames.integration.minecraft.accessor.network.HttpUtils;
@@ -78,61 +79,29 @@ public class CollectCartHandler implements HttpHandler{
 			}
 			
 			JsonArray response = new JsonArray();
-			
 
 			JsonArray jsonItemStacks = data.get("item_stacks").getAsJsonArray();
 			
 				for(JsonElement element : jsonItemStacks) {
 					
 					JsonObject jsonItemStack = element.getAsJsonObject();
-				
-					int quantity = jsonItemStack.get("quantity").getAsInt();
-		
-					JsonObject jsonItem = jsonItemStack.get("item").getAsJsonObject();
 					
-					Item item = null;
-					
-						if(jsonItem.has("id")) {
-							
-							int itemId = jsonItem.get("id").getAsInt();
-						
-							item = Item.getItemById(itemId);
-						
-							if(item == null) {
-								
-								item = Item.getItemFromBlock(Block.getBlockById(itemId));
-							}
-						}
-						else if(jsonItem.has("name")) {
-							
-							String itemName = jsonItem.get("name").getAsString();
-							
-							item = Item.getByNameOrId(itemName);
-							
-							if(item == null) {
-								
-								item = Item.getItemFromBlock(Block.getBlockFromName(itemName));
-							}
-						}
-						
-					ItemStack is = new ItemStack(item);
+					ItemStack is = MarketDataUtils.fromMarketItemStack(jsonItemStack);
 					
 						int available = PlayerUtils.getAvailableSpaceForItem(player, is);
 					
-						if(quantity > available) {
+						if(is.getCount() > available) {
 							
-							quantity = available;
+							is.setCount(available);
 						}
-						
-						is.setCount(quantity);
-					
-					player.addItemStackToInventory(is);
-					
+
 					JsonObject responseItemStack = new JsonObject();
 						responseItemStack.addProperty("id", jsonItemStack.get("id").getAsLong());
-						responseItemStack.addProperty("quantity", quantity);
+						responseItemStack.addProperty("quantity", is.getCount());
 				
 					response.add(responseItemStack);
+					
+					player.addItemStackToInventory(is);		
 				}
 		
 			byte[] responseByteArray = response.toString().getBytes();
