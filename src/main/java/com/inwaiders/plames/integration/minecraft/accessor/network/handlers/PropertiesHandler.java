@@ -21,9 +21,9 @@ public class PropertiesHandler implements HttpHandler{
 
 		String rawData = HttpUtils.readString(exchange.getRequestBody());
 		
-		JsonObject data = (JsonObject) ReCraftAccessor.jsonParser.parse(rawData.toString());
+		JsonObject data = (JsonObject) ReCraftAccessor.JSON_PARSER.parse(rawData.toString());
 	
-		if(!data.has("secret") || !data.get("secret").equals(ReCraftAccessor.properties.get("secret"))) {
+		if(!data.has("secret") || !data.get("secret").equals(ReCraftAccessor.PROPERTIES.get("secret"))) {
 			
 			exchange.sendResponseHeaders(403, -1);
 			return;
@@ -31,22 +31,22 @@ public class PropertiesHandler implements HttpHandler{
 		
 		if(data.has("server_id")) {
 			
-			ReCraftAccessor.properties.setProperty("server-id", data.get("server_id").getAsString());
+			ReCraftAccessor.PROPERTIES.setProperty("server-id", data.get("server_id").getAsString());
 		}
 		
 		if(data.has("controller_protocol")) {
 			
-			ReCraftAccessor.properties.setProperty("controller-protocol", data.get("controller_protocol").getAsString());
+			ReCraftAccessor.PROPERTIES.setProperty("controller-protocol", data.get("controller_protocol").getAsString());
 		}
 		
 		if(data.has("controller_address")) {
 		
-			ReCraftAccessor.properties.setProperty("controller-address", data.get("controller_address").getAsString());
+			ReCraftAccessor.PROPERTIES.setProperty("controller-address", data.get("controller_address").getAsString());
 		}
 		
 		if(data.has("controller_port")) {
 			
-			ReCraftAccessor.properties.setProperty("controller-port", data.get("controller_port").getAsString());
+			ReCraftAccessor.PROPERTIES.setProperty("controller-port", data.get("controller_port").getAsString());
 		}
 	}
 }

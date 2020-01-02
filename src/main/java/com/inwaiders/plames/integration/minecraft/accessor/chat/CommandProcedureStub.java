@@ -35,7 +35,7 @@ public class CommandProcedureStub extends CommandBase {
 			String playerName = player.getGameProfile().getName();
 			String message = String.join(" ", args).trim();
 
-			ReCraftAccessor.executorService.submit(()-> {
+			ReCraftAccessor.EXECUTOR_SERVICE.submit(()-> {
 				
 				boolean result = ReCraftHttpConnector.sendToMessengerServer(uuid, playerName, message);
 				

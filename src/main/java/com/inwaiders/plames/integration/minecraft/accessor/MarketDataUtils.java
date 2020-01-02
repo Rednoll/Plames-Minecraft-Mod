@@ -31,11 +31,16 @@ public class MarketDataUtils {
 
 	private static Gson gson = new GsonBuilder().create();
 	
-	public static JsonObject getMarketItemSeed(ItemStack is, JsonObject metadata) {
+	public static JsonObject getMarketItem(ItemStack is) {
+		
+		return getMarketItem(is, getMarketMetadata(is));
+	}
 	
-		JsonObject root = new JsonObject();
-		
-		
+	public static JsonObject getMarketItem(ItemStack is, JsonObject metadata) {
+	
+		JsonObject root = new JsonObject(); 
+			root.addProperty("name", normalizeItemName(is.getItem().getRegistryName().getResourcePath()));
+			root.add("metadata", metadata);
 		
 		return root;
 	}
@@ -336,4 +341,18 @@ public class MarketDataUtils {
 			jsonArray.add(((NBTTagString) base).getString());
 		}
 	}
+	
+    public static String normalizeItemName(String name) {
+    	
+    	String[] words = name.split("_");
+    
+    	for(int i = 0; i<words.length; i++) {
+    		
+    		if(words[i].toLowerCase().contains("item") || words[i].toLowerCase().contains("block")) continue;
+    		
+    		words[i] = (words[i].charAt(0)+"").toUpperCase()+words[i].substring(1);
+    	}
+    	
+    	return String.join(" ", words);
+    }
 }

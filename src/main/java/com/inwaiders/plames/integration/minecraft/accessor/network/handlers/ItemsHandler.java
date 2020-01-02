@@ -5,15 +5,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.google.gson.JsonObject;
+import com.inwaiders.plames.integration.minecraft.accessor.MarketDataUtils;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
 import com.inwaiders.plames.integration.minecraft.accessor.network.HttpUtils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 
-public class OnlinePlayersCountHandler implements HttpHandler{
+public class ItemsHandler implements HttpHandler{
 
 	@Override
 	public void handle(HttpExchange exchange) throws IOException {
@@ -31,14 +32,21 @@ public class OnlinePlayersCountHandler implements HttpHandler{
 			return;
 		}
 		
-		MinecraftServer minecraftServer = FMLCommonHandler.instance().getMinecraftServerInstance();
+		if(data.has("item_hash")) {
+			
+			String hash = data.get("item_hash").getAsString();
+			
+			Item item = ReCraftAccessor.HASH_ITEM_MAP.get(hash);
+			
+			JsonObject jsonItem = MarketDataUtils.getMarketItem(new ItemStack(item));
 		
-		int onlineCount = minecraftServer.getPlayerList().getOnlinePlayerNames().length;
-
-		exchange.sendResponseHeaders(200, 4);
-		dos.writeInt(onlineCount);
-		os.flush();
-		os.close();
-		return;
+			byte[] responseData = jsonItem.toString().getBytes();
+			
+			exchange.sendResponseHeaders(200, responseData.length);
+			dos.write(responseData);
+			dos.flush();
+			dos.close();
+			return;
+		}
 	}
 }

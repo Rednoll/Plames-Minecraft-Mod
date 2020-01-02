@@ -5,16 +5,21 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandProcedureStub;
-import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandStub;
 import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressBegin;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressPrefix;
@@ -22,7 +27,11 @@ import com.inwaiders.plames.integration.minecraft.stress.CommandStressProfilesCo
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressSpeed;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressStop;
 
+import net.minecraft.block.Block;
+import net.minecraft.command.CommandHandler;
+import net.minecraft.init.Items;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -38,67 +47,62 @@ public class ReCraftAccessor {
     public static final String NAME = "ReCraft Accessor";
     public static final String VERSION = "1.0";
 
-    public static Properties properties = new Properties();
+    public static Properties PROPERTIES = new Properties();
     
-   // private static Logger logger;
+    private static File dataFile = new File("plames_accessor.data");
+    public static JsonObject COMMON_DATA = null;
     
-    public static JsonParser jsonParser = new JsonParser();
+    public static JsonParser JSON_PARSER = new JsonParser();
     
-    public static ExecutorService executorService = null;
+    public static ExecutorService EXECUTOR_SERVICE = null;
+    
+    public static Map<String, Item> HASH_ITEM_MAP = new HashMap<>();
     
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
 
-    	executorService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("plames-integration-%d").build());
+    	EXECUTOR_SERVICE = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("plames-integration-%d").build());
     	
-    	//logger = event.getModLog();
-    	
-    	File propertiesFile = new File("recraft_accessor.properties");
+    	File propertiesFile = new File("plames_accessor.properties");
  
 		if(propertiesFile.exists()) {
     	
     		try {
     			
-				properties.load(Files.newInputStream(propertiesFile.toPath(), StandardOpenOption.READ));
+				PROPERTIES.load(Files.newInputStream(propertiesFile.toPath(), StandardOpenOption.READ));
 			
-				if(!properties.containsKey("secret")) {
+				if(!PROPERTIES.containsKey("secret")) {
 					
-				//	logger.warn("Secret key not found in properties file, using default: 12345");
 					System.out.println("Secret key not found in properties file, using default: 12345");
-					properties.setProperty("secret", "12345");
+					PROPERTIES.setProperty("secret", "12345");
 				}
 				
-				if(!properties.containsKey("port")) {
+				if(!PROPERTIES.containsKey("port")) {
 					
-				//	logger.warn("Port not found in properties file, using default: 7769");
 					System.out.println("Port not found in properties file, using default: 7769");
-					properties.setProperty("port", "7769");
+					PROPERTIES.setProperty("port", "7769");
 				}
 				
-				if(!properties.containsKey("controller-protocol")) {
+				if(!PROPERTIES.containsKey("controller-protocol")) {
 					
-				//	logger.warn("Controller protocol not found in properties file, using default: http");
 					System.out.println("Controller protocol not found in properties file, using default: http");
-					properties.setProperty("controller-protocol", "http");
+					PROPERTIES.setProperty("controller-protocol", "http");
 				}
 				
-				if(!properties.containsKey("controller-address")) {
+				if(!PROPERTIES.containsKey("controller-address")) {
 					
-				//	logger.warn("Controller address not found in properties file, using default: 0.0.0.0");
 					System.out.println("Controller address not found in properties file, using default: 0.0.0.0");
-					properties.setProperty("controller-address", "0.0.0.0");
+					PROPERTIES.setProperty("controller-address", "0.0.0.0");
 				}
 				
-				if(!properties.containsKey("controller-port")) {
+				if(!PROPERTIES.containsKey("controller-port")) {
 					
-				//	logger.warn("Controller port not found in properties file, using default: 80");
 					System.out.println("Controller port not found in properties file, using default: 80");
-					properties.setProperty("controller-port", "80");
+					PROPERTIES.setProperty("controller-port", "80");
 				}
 			
-				if(!properties.containsKey("server-id")) {
+				if(!PROPERTIES.containsKey("server-id")) {
 					
-				//	logger.warn("Server id not found in properties file, will be requested from the server");
 					System.out.println("Server id not found in properties file, will be requested from the server");
 					//TODO: requesting...
 				}
@@ -110,25 +114,49 @@ public class ReCraftAccessor {
 		}
 		else {
 			
-//			logger.warn("Properties file not found! Creating default...");
 			System.out.println("Properties file not found! Creating default...");
 			
-			properties.setProperty("secret", "12345");
-			properties.setProperty("port", "7769");
-			properties.setProperty("controller-protocol", "http");
-			properties.setProperty("controller-address", "0.0.0.0");
-			properties.setProperty("controller-port", "80");
+			PROPERTIES.setProperty("secret", "12345");
+			PROPERTIES.setProperty("port", "7769");
+			PROPERTIES.setProperty("controller-protocol", "http");
+			PROPERTIES.setProperty("controller-address", "0.0.0.0");
+			PROPERTIES.setProperty("controller-port", "80");
 		
 			try {
 				
-				properties.store(Files.newOutputStream(propertiesFile.toPath(), StandardOpenOption.CREATE_NEW), "");
+				PROPERTIES.store(Files.newOutputStream(propertiesFile.toPath(), StandardOpenOption.CREATE_NEW), "");
 			}
 			catch (IOException e) {
 				
 				e.printStackTrace();
 			}
 		}
-    }
+		
+		File dataFile = new File("plames_accessor.data");
+		
+		if(dataFile.exists()) {
+		
+			try {
+				
+				COMMON_DATA = (JsonObject) JSON_PARSER.parse(new String(Files.readAllBytes(dataFile.toPath())));
+			}
+			catch(JsonSyntaxException e) {
+				
+				e.printStackTrace();
+			}
+			catch(IOException e) {
+				
+				e.printStackTrace();
+			}
+		}
+		else {
+			
+			COMMON_DATA = new JsonObject();
+				COMMON_DATA.addProperty("market_items_hash", "");
+			
+			saveCommonData();
+		}
+	}
   
     @EventHandler
     public void init(FMLInitializationEvent event) {
@@ -144,12 +172,7 @@ public class ReCraftAccessor {
     @EventHandler
     public void serverInit(FMLServerStartingEvent event){
     	
-    	List<String> commandsAliases = ReCraftHttpConnector.requestCommandsAliases();
-    	
-    	for(String commandAliase : commandsAliases) {
-    		
-    		event.registerServerCommand(new CommandStub(commandAliase));
-    	}
+    	ReCraftHttpConnector.loadCommandsFromPlames((CommandHandler) event.getServer().getCommandManager());
     	
     	event.registerServerCommand(new CommandProcedureStub("m"));
     	
@@ -159,10 +182,59 @@ public class ReCraftAccessor {
     	event.registerServerCommand(new CommandStressProfilesCount());
     	event.registerServerCommand(new CommandStressSpeed());
     	event.registerServerCommand(new CommandStressStop());
+    	
+    	HASH_ITEM_MAP = createHashItemMap();
+    	
+    	marketInitialize();
     }
     
-    @EventHandler
-    public void parsingItems(FMLServerStartingEvent event) {
+    private void marketInitialize() {
+    	
+		List<String> hashes = new ArrayList<>();
+    	
+    	List<Item> items = parseItems();
+    	    
+	    	for(Item item : items) {
+	    		
+	    		ItemStack is = new ItemStack(item);
+	    		JsonObject itemMarketMetadata = MarketDataUtils.getMarketMetadata(is);
+	    		
+	    		String hash = DigestUtils.md5Hex(itemMarketMetadata.toString());
+	    	
+	    		hashes.add(hash);
+	    	}
+	    	
+	    String totalHash = DigestUtils.sha256Hex(String.join("", hashes));
+	    
+	    if(!COMMON_DATA.get("market_items_hash").getAsString().equals(totalHash)) {
+	    	
+	    	COMMON_DATA.addProperty("market_items_hash", totalHash);
+	    	saveCommonData();
+	    	
+	    	ReCraftHttpConnector.sendItemsSyncRequest(totalHash, hashes);
+	    }
+    }
+    
+    public Map<String, Item> createHashItemMap() {
+    	
+    	Map<String, Item> result = new HashMap<>();
+    	
+    	List<Item> items = parseItems();
+    	
+    	for(Item item : items) {
+    		
+    		ItemStack is = new ItemStack(item);
+    		JsonObject itemMarketMetadata = MarketDataUtils.getMarketMetadata(is);
+    		
+    		result.put(DigestUtils.md5Hex(itemMarketMetadata.toString()), item);
+    	}
+    	
+    	return result;
+    }
+    
+    public List<Item> parseItems() {
+    	
+    	List<Item> items = new ArrayList<>();
     	
     	try {
     		
@@ -175,11 +247,31 @@ public class ReCraftAccessor {
 				String unlocalizedName = item.getUnlocalizedName();
 				
 				if(unlocalizedName.startsWith("item")) {
-				
-					System.out.println("name: "+normalizeItemName(key.getResourcePath()));
-					System.out.println(key.getResourceDomain()+":"+key.getResourcePath());
+					
+					items.add(item);
 				}
 			}
+			
+			
+			keys = Block.REGISTRY.getKeys();
+			
+			for(ResourceLocation key : keys) {
+				
+				Block block = Block.REGISTRY.getObject(key);
+				
+				String unlocalizedName = block.getUnlocalizedName();
+				
+				if(unlocalizedName.startsWith("tile")) {
+		
+					Item item = Item.getItemFromBlock(block);
+					
+					if(item != null && item != Items.AIR) {
+						
+						items.add(item);
+					}
+				}
+			}
+			
     	}
     	catch(SecurityException e) {
 			
@@ -190,20 +282,23 @@ public class ReCraftAccessor {
 			e.printStackTrace();
 		}
     	
-    	MarketDataUtilsTest.test();
+    	return items;
     }
     
-    public String normalizeItemName(String name) {
+    public static void saveCommonData() {
     	
-    	String[] words = name.split("_");
-    
-    	for(int i = 0; i<words.length; i++) {
+    	if(dataFile.exists()) {
     		
-    		if(words[i].toLowerCase().contains("item") || words[i].toLowerCase().contains("block")) continue;
-    		
-    		words[i] = (words[i].charAt(0)+"").toUpperCase()+words[i].substring(1);
+    		dataFile.delete();
     	}
     	
-    	return String.join(" ", words);
+    	try {
+    		
+			Files.write(dataFile.toPath(), COMMON_DATA.toString().getBytes());
+		}
+    	catch (IOException e) {
+		
+			e.printStackTrace();
+		}
     }
 }

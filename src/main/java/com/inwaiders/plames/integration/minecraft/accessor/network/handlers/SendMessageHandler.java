@@ -26,7 +26,7 @@ public class SendMessageHandler implements HttpHandler{
 
 		String rawData = HttpUtils.readString(exchange.getRequestBody());
 		
-		JsonObject data = (JsonObject) ReCraftAccessor.jsonParser.parse(rawData.toString());
+		JsonObject data = (JsonObject) ReCraftAccessor.JSON_PARSER.parse(rawData.toString());
 	
 		if(!data.has("text") || !data.has("player_name") || !data.has("player_uuid")) {
 			
@@ -34,7 +34,7 @@ public class SendMessageHandler implements HttpHandler{
 			return;
 		}
 		
-		if(!data.has("secret") || !data.get("secret").getAsString().equals(ReCraftAccessor.properties.get("secret"))) {
+		if(!data.has("secret") || !data.get("secret").getAsString().equals(ReCraftAccessor.PROPERTIES.get("secret"))) {
 			
 			exchange.sendResponseHeaders(403, -1);
 			return;
@@ -63,7 +63,7 @@ public class SendMessageHandler implements HttpHandler{
 				
 				GameProfile profile = ep.getGameProfile();
 			
-				if(ReCraftAccessor.properties.get("player-find-strategy").equals("uuid")) {
+				if(ReCraftAccessor.PROPERTIES.get("player-find-strategy").equals("uuid")) {
 					
 					if(!profile.getId().equals(playerUUID)) {
 				
@@ -71,7 +71,7 @@ public class SendMessageHandler implements HttpHandler{
 					}
 				}
 				
-				else if(ReCraftAccessor.properties.get("player-find-strategy").equals("name")) {
+				else if(ReCraftAccessor.PROPERTIES.get("player-find-strategy").equals("name")) {
 					
 					if(!profile.getName().equals(playerName)) {
 						

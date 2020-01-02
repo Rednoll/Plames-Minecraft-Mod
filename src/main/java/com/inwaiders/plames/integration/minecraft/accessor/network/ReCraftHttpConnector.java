@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -21,35 +23,44 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
+import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandStub;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.AllPlayersCountHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.CheckOnlineHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.CollectCartHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.ItemsHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.OnlinePlayersCountHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.PropertiesHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.SendMessageHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import net.minecraft.command.CommandHandler;
+
 public class ReCraftHttpConnector {
 	
 	private static HttpServer server = null;
+	
+	private static Thread requestProcessor = null;
+	private static BlockingDeque<Task> requests = new LinkedBlockingDeque<>();
 	
 	public static void init() {
 		
 		try {
 			
 			server = HttpServer.create();
-				server.bind(new InetSocketAddress(Integer.valueOf(ReCraftAccessor.properties.getProperty("port"))), 0);
+				server.bind(new InetSocketAddress(Integer.valueOf(ReCraftAccessor.PROPERTIES.getProperty("port"))), 0);
 				server.createContext("/properties", new PropertiesHandler());
 				server.createContext("/send_message", new SendMessageHandler());
 				server.createContext("/check_online", new CheckOnlineHandler());
 				server.createContext("/players_count", new AllPlayersCountHandler());
 				server.createContext("/online_count", new OnlinePlayersCountHandler());
 				server.createContext("/collect_cart", new CollectCartHandler());
+				server.createContext("/items", new ItemsHandler());
 				
 			server.start();
 			
@@ -59,16 +70,95 @@ public class ReCraftHttpConnector {
 			
 			e.printStackTrace();
 		}
+		
+		requestProcessor = new Thread(()-> {
+			
+			while(true) {
+				
+				Task task = null;
+				
+				try {
+					
+					task = requests.take();
+				}
+				catch(InterruptedException e2) {
+					
+					e2.printStackTrace();
+				}
+				
+				try {
+
+					task.run();
+				}
+				catch(IOException e) {
+					
+					if(e instanceof ClientProtocolException) {
+						
+						System.out.println("Can't connect to Plames System!");
+						
+						requests.addFirst(task);
+						
+						try {
+							
+							Thread.sleep(5000);
+						}
+						catch(InterruptedException e1) {
+						
+							e1.printStackTrace();
+						}
+					}
+				}
+			}
+			
+		});
+
+		requestProcessor.start();
+	}
+	
+	public static void addTask(Task task) {
+		
+		requests.add(task);
+	}
+	
+	public static void sendItemsSyncRequest(String totalHash, List<String> hashes) {
+		
+		System.out.println("Sending items sync request");
+		
+		Properties properties = ReCraftAccessor.PROPERTIES;
+		
+		JsonObject data = new JsonObject();
+			data.addProperty("server_id", Long.valueOf((String) properties.get("server-id")));
+			data.addProperty("secret", (String) properties.get("secret"));
+			data.add("hashes", new Gson().toJsonTree(hashes));
+			data.addProperty("total_hash", totalHash);
+			
+		try {
+	
+			HttpPost post = new HttpPost(getMethodUrl("api/minecraft/ajax/item/sync"));
+				post.setEntity(new StringEntity(data.toString()));
+				post.setHeader("Content-type", "application/json;charset=UTF-8");
+			
+			HttpClient client = HttpClients.createDefault();
+			CloseableHttpResponse response = (CloseableHttpResponse) client.execute(post);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+
+			EntityUtils.consume(response.getEntity());
+		}
+		catch(IOException e) {
+	
+			e.printStackTrace();
+		}
 	}
 	
 	public static boolean sendToMessengerServer(UUID playerUUID, String playerName, String text) {
 		
-		Properties properties = ReCraftAccessor.properties;
+		Properties properties = ReCraftAccessor.PROPERTIES;
 			
-		JsonObject data = new JsonObject();
-			data.addProperty("server_id", Long.valueOf((String) properties.get("server-id")));
-			data.addProperty("secret", (String) properties.get("secret"));
-			data.addProperty("type", "new_message");
+		JsonObject root = new JsonObject();
+			root.addProperty("server_id", Long.valueOf((String) properties.get("server-id")));
+			root.addProperty("secret", (String) properties.get("secret"));
+			root.addProperty("type", "new_message");
 			
 			JsonObject dataObject = new JsonObject();
 				dataObject.addProperty("player_name", playerName);
@@ -83,15 +173,13 @@ public class ReCraftHttpConnector {
 					e1.printStackTrace();
 				}
 				
-			data.add("object", dataObject);
-			
-		System.out.println(data.toString());
+			root.add("object", dataObject);
 			
 		try {
 	
 			
 			HttpPost post = new HttpPost(getMethodUrl("api/minecraft/callback"));
-				post.setEntity(new StringEntity(data.toString()));
+				post.setEntity(new StringEntity(root.toString()));
 				post.setHeader("Content-type", "application/json;charset=UTF-8");
 				
 			HttpClient client = HttpClients.createDefault();
@@ -107,26 +195,6 @@ public class ReCraftHttpConnector {
 			}
 			
 			return true;
-			
-			/*
-			URL url = new URL(getMethodUrl("api/minecraft/callback"));
-			HttpURLConnection con = (HttpURLConnection) url.openConnection();
-				con.setRequestMethod("POST");
-				con.setRequestProperty("Content-Type", "application/json; utf-8");
-				con.setDoOutput(true);
-				
-			con.getOutputStream().write(data.toString().getBytes());
-			
-			int repsonseCode = con.getResponseCode();
-			
-			if(repsonseCode == 200) {
-				
-				return true;
-			}
-			
-			return false;
-			
-			*/
 		}
 		catch(IOException e) {
 	
@@ -136,39 +204,43 @@ public class ReCraftHttpConnector {
 		}
 	}
 	
-	public static List<String> requestCommandsAliases() {
+	public static void loadCommandsFromPlames(CommandHandler commandHandler) {
+
+		requests.add(()-> {
+		
+			List<String> commandsAliases = requestCommandsAliases();
+	    	
+	    	for(String commandAliase : commandsAliases) {
+	    		
+	    		commandHandler.registerCommand(new CommandStub(commandAliase));
+	    		System.out.println("registered command/aliase: "+commandAliase);
+	    	}
+		});
+	}
+	
+	public static List<String> requestCommandsAliases() throws ClientProtocolException, IOException {
 		
 		List<String> result = new ArrayList<>();
 		
-    	CloseableHttpClient httpClient = (CloseableHttpClient) HttpClients.createDefault();
-    	
     	HttpGet get = new HttpGet(getMethodUrl("api/minecraft/ajax/commands"));
+
+    	CloseableHttpClient httpClient = HttpClients.createDefault();
+    	
+		CloseableHttpResponse response = httpClient.execute(get);
 	
-    	try {
+    		HttpEntity entity = response.getEntity();
     		
-			CloseableHttpResponse response = httpClient.execute(get);
-		
-	    		HttpEntity entity = response.getEntity();
-	    		
-	    		String rawData = EntityUtils.toString(entity);
-	  
-	    		EntityUtils.consume(entity);
-	    		
-	    	JsonArray array = new JsonParser().parse(rawData).getAsJsonArray();
-	    	
-	    	for(JsonElement element : array) {
-	    		
-	    		String commnadAliase = element.getAsString();
-	    	
-	    		result.add(commnadAliase);
-	    	}
-	    	
-    	}
-    	catch (ClientProtocolException e) {
-			e.printStackTrace();
-		}
-    	catch (IOException e) {
-			e.printStackTrace();
+    		String rawData = EntityUtils.toString(entity);
+  
+    		EntityUtils.consume(entity);
+    		
+    	JsonArray array = new JsonParser().parse(rawData).getAsJsonArray();
+    	
+    	for(JsonElement element : array) {
+    		
+    		String commnadAliase = element.getAsString();
+    	
+    		result.add(commnadAliase);
     	}
     	
     	return result;
@@ -176,7 +248,7 @@ public class ReCraftHttpConnector {
 	
 	private static String getMethodUrl(String methodName) {
 		
-		Properties properties = ReCraftAccessor.properties;
+		Properties properties = ReCraftAccessor.PROPERTIES;
 		
 		StringBuilder builder = new StringBuilder();
 			builder.append(properties.get("controller-protocol"));
@@ -186,5 +258,10 @@ public class ReCraftHttpConnector {
 			builder.append("/"+methodName);
 			
 		return builder.toString();
+	}
+	
+	private static interface Task {
+		
+		public void run() throws ClientProtocolException, IOException;
 	}
 }

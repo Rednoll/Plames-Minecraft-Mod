@@ -31,9 +31,9 @@ public class CollectCartHandler implements HttpHandler{
 			
 			String rawData = HttpUtils.readString(exchange.getRequestBody());
 			
-			JsonObject data = (JsonObject) ReCraftAccessor.jsonParser.parse(rawData);
+			JsonObject data = (JsonObject) ReCraftAccessor.JSON_PARSER.parse(rawData);
 
-			if(!data.has("secret") || !data.get("secret").getAsString().equals(ReCraftAccessor.properties.get("secret"))) {
+			if(!data.has("secret") || !data.get("secret").getAsString().equals(ReCraftAccessor.PROPERTIES.get("secret"))) {
 				
 				exchange.sendResponseHeaders(403, -1);
 				return;
@@ -52,14 +52,14 @@ public class CollectCartHandler implements HttpHandler{
 						
 						GameProfile profile = ep.getGameProfile();
 					
-						if(ReCraftAccessor.properties.get("player-find-strategy").equals("uuid")) {
+						if(ReCraftAccessor.PROPERTIES.get("player-find-strategy").equals("uuid")) {
 							
 							if(!profile.getId().equals(playerUUID)) {
 						
 								continue;
 							}
 						}
-						else if(ReCraftAccessor.properties.get("player-find-strategy").equals("name")) {
+						else if(ReCraftAccessor.PROPERTIES.get("player-find-strategy").equals("name")) {
 							
 							if(!profile.getName().equals(playerName)) {
 								

@@ -24,9 +24,9 @@ public class AllPlayersCountHandler implements HttpHandler{
 		
 		String rawData = HttpUtils.readString(exchange.getRequestBody());
 		
-		JsonObject data = (JsonObject) ReCraftAccessor.jsonParser.parse(rawData.toString());
+		JsonObject data = (JsonObject) ReCraftAccessor.JSON_PARSER.parse(rawData.toString());
 		
-		if(!data.has("secret") || !data.get("secret").getAsString().equals(ReCraftAccessor.properties.get("secret"))) {
+		if(!data.has("secret") || !data.get("secret").getAsString().equals(ReCraftAccessor.PROPERTIES.get("secret"))) {
 			
 			exchange.sendResponseHeaders(403, -1);
 			return;
