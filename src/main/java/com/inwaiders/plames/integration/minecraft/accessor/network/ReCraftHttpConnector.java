@@ -246,7 +246,7 @@ public class ReCraftHttpConnector {
     	return result;
 	}
 	
-	private static String getMethodUrl(String methodName) {
+	public static String getMethodUrl(String methodName) {
 		
 		Properties properties = ReCraftAccessor.PROPERTIES;
 		

@@ -20,6 +20,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandProcedureStub;
+import com.inwaiders.plames.integration.minecraft.accessor.commands.CommandHandlerRegistry;
+import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketCartCommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressBegin;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressPrefix;
@@ -172,6 +174,8 @@ public class ReCraftAccessor {
     @EventHandler
     public void serverInit(FMLServerStartingEvent event){
     	
+    	CommandHandlerRegistry.register("market", new MarketCartCommandHandler());
+    	
     	ReCraftHttpConnector.loadCommandsFromPlames((CommandHandler) event.getServer().getCommandManager());
     	
     	event.registerServerCommand(new CommandProcedureStub("m"));
@@ -205,6 +209,8 @@ public class ReCraftAccessor {
 	    	}
 	    	
 	    String totalHash = DigestUtils.sha256Hex(String.join("", hashes));
+	    
+	    System.out.println("Market Total Hash: "+totalHash);
 	    
 	    if(!COMMON_DATA.get("market_items_hash").getAsString().equals(totalHash)) {
 	    	

@@ -1,8 +1,11 @@
 package com.inwaiders.plames.integration.minecraft.accessor.chat;
 
+import java.util.Set;
 import java.util.UUID;
 
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
+import com.inwaiders.plames.integration.minecraft.accessor.commands.CommandHandlerRegistry;
+import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.CommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
 
 import net.minecraft.command.CommandBase;
@@ -16,10 +19,12 @@ import net.minecraft.util.text.TextComponentString;
 public class CommandStub extends CommandBase {
 
 	private String name = null;
+	private Set<CommandHandler> handlers = null;
 	
 	public CommandStub(String name) {
 	
 		this.name = name;
+		this.handlers = CommandHandlerRegistry.getCommandHandlers(this.name);
 	}
 	
 	@Override
@@ -34,8 +39,15 @@ public class CommandStub extends CommandBase {
 			UUID uuid = player.getGameProfile().getId();
 			String playerName = player.getGameProfile().getName();
 			String message = ("/"+name+" "+String.join(" ", args)).trim();
-
+			
 			ReCraftAccessor.EXECUTOR_SERVICE.submit(()-> {
+				
+				boolean cancel = processHandlers(player, args);
+				
+				if(cancel) {
+					
+					return;
+				}
 				
 				boolean result = ReCraftHttpConnector.sendToMessengerServer(uuid, playerName, message);
 				
@@ -45,6 +57,19 @@ public class CommandStub extends CommandBase {
 				}
 			});
 		}
+	}
+	
+	public boolean processHandlers(EntityPlayer ep, String[] args) {
+		
+		for(CommandHandler handler : handlers) {
+			
+			if(handler.handle(ep, args)) {
+				
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	@Override

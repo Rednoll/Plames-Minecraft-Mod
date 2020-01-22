@@ -14,13 +14,12 @@ import com.mojang.authlib.GameProfile;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import scala.tools.nsc.doc.model.diagram.ObjectNode;
 
 public class CollectCartHandler implements HttpHandler{
 
@@ -80,13 +79,16 @@ public class CollectCartHandler implements HttpHandler{
 			
 			JsonArray response = new JsonArray();
 
-			JsonArray jsonItemStacks = data.get("item_stacks").getAsJsonArray();
-			
+			JsonArray jsonItemStacks = ((JsonObject) data.get("cart")).get("item_stacks").getAsJsonArray();
+//			MarketCartInventory cartInventory = new MarketCartInventory();
+
 				for(JsonElement element : jsonItemStacks) {
 					
 					JsonObject jsonItemStack = element.getAsJsonObject();
 					
 					ItemStack is = MarketDataUtils.fromMarketItemStack(jsonItemStack);
+					
+//					cartInventory.spreadStack(is);
 					
 						int available = PlayerUtils.getAvailableSpaceForItem(player, is);
 					
@@ -102,8 +104,11 @@ public class CollectCartHandler implements HttpHandler{
 					response.add(responseItemStack);
 					
 					player.addItemStackToInventory(is);		
+					 
 				}
-		
+	
+//			player.displayGUIChest(cartInventory);
+			
 			byte[] responseByteArray = response.toString().getBytes();
 				
 			exchange.sendResponseHeaders(200, responseByteArray.length);
