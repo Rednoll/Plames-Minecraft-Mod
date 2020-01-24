@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
-import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.ReCraftHttpConnector;
 
 public class AccessorStress {
 

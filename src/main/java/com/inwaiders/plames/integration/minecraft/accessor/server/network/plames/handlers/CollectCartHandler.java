@@ -1,4 +1,4 @@
-package com.inwaiders.plames.integration.minecraft.accessor.network.handlers;
+package com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -9,7 +9,7 @@ import com.google.gson.JsonObject;
 import com.inwaiders.plames.integration.minecraft.accessor.MarketDataUtils;
 import com.inwaiders.plames.integration.minecraft.accessor.PlayerUtils;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
-import com.inwaiders.plames.integration.minecraft.accessor.network.HttpUtils;
+import com.inwaiders.plames.integration.minecraft.accessor.network.plames.HttpUtils;
 import com.mojang.authlib.GameProfile;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;

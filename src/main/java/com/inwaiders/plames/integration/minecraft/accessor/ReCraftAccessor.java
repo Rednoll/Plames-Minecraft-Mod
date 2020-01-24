@@ -22,7 +22,8 @@ import com.google.gson.JsonSyntaxException;
 import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandProcedureStub;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.CommandHandlerRegistry;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketCartCommandHandler;
-import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
+import com.inwaiders.plames.integration.minecraft.accessor.inventory.gui.ReCraftGuiHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.ReCraftHttpConnector;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressBegin;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressPrefix;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressProfilesCount;
@@ -41,6 +42,8 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.relauncher.Side;
 
 @Mod(modid = ReCraftAccessor.MODID, name = ReCraftAccessor.NAME, version = ReCraftAccessor.VERSION, acceptableRemoteVersions = "*")
 public class ReCraftAccessor {
@@ -60,8 +63,31 @@ public class ReCraftAccessor {
     
     public static Map<String, Item> HASH_ITEM_MAP = new HashMap<>();
     
+    @Mod.Instance(MODID)
+    public static ReCraftAccessor instance;
+    
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+
+    	if(event.getSide() == Side.SERVER) {
+    		
+    		serverPreInit();
+    	}
+    	
+    	if(event.getSide() == Side.CLIENT) {
+    		
+    		clientPreInit();
+    	}
+    	
+    	NetworkRegistry.INSTANCE.registerGuiHandler(ReCraftAccessor.instance, new ReCraftGuiHandler());
+	}
+    
+    private void clientPreInit() {
+    	
+    	
+    }
+    
+    private void serverPreInit() {
 
     	EXECUTOR_SERVICE = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("plames-integration-%d").build());
     	
@@ -158,7 +184,7 @@ public class ReCraftAccessor {
 			
 			saveCommonData();
 		}
-	}
+    }
   
     @EventHandler
     public void init(FMLInitializationEvent event) {
@@ -168,11 +194,12 @@ public class ReCraftAccessor {
     @EventHandler
     public void postInit(FMLPostInitializationEvent event) {
     	
-    	ReCraftHttpConnector.init();
     }
     
     @EventHandler
     public void serverInit(FMLServerStartingEvent event){
+    	
+    	ReCraftHttpConnector.init();
     	
     	CommandHandlerRegistry.register("market", new MarketCartCommandHandler());
     	

@@ -1,4 +1,4 @@
-package com.inwaiders.plames.integration.minecraft.accessor.network.handlers;
+package com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
-import com.inwaiders.plames.integration.minecraft.accessor.network.HttpUtils;
+import com.inwaiders.plames.integration.minecraft.accessor.network.plames.HttpUtils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 

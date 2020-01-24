@@ -2,6 +2,8 @@ package com.inwaiders.plames.integration.minecraft.accessor.commands.handlers;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
@@ -19,25 +21,30 @@ import com.google.gson.JsonParser;
 import com.inwaiders.plames.integration.minecraft.accessor.MarketDataUtils;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.MarketCartInventory;
-import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
+import com.inwaiders.plames.integration.minecraft.accessor.inventory.gui.ReCraftGuiHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.ReCraftHttpConnector;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class MarketCartCommandHandler implements CommandHandler {
-
+	
+	public static volatile Map<EntityPlayer, MarketCartInventory> cartInventories = new HashMap<EntityPlayer, MarketCartInventory>();
+	
 	@Override
-	public boolean handle(EntityPlayer ep, String[] args) {
+	public boolean handle(EntityPlayer player, String[] args) {
 	
 		if(args.length == 2 && args[0].equals("/cart") && args[1].equals("gui")) {
 			
 			JsonObject data = new JsonObject();
 				data.addProperty("server", Long.valueOf((String) ReCraftAccessor.PROPERTIES.get("server-id")));
 				data.addProperty("secret", (String) ReCraftAccessor.PROPERTIES.get("secret"));
-				data.addProperty("player_name", ep.getGameProfile().getName());
-				data.addProperty("player_uuid", ep.getGameProfile().getId().toString());
+				data.addProperty("player_name", player.getGameProfile().getName());
+				data.addProperty("player_uuid", player.getGameProfile().getId().toString());
 				
-			HttpPost post = new HttpPost(ReCraftHttpConnector.getMethodUrl("web/controller/ajax/mc/server/player_cart"));
+			HttpPost post = new HttpPost(ReCraftHttpConnector.getMethodUrl("api/mc/ajax/server/player_cart"));
 				
 				try {
 					
@@ -55,18 +62,18 @@ public class MarketCartCommandHandler implements CommandHandler {
 	    	try {
 				
 	    		CloseableHttpResponse response = httpClient.execute(post);
-				
+
 	    		HttpEntity entity = response.getEntity();
 	    		
 	    			String rawData = EntityUtils.toString(entity);
-	    					
+	    			
 	    		EntityUtils.consume(entity);
-	    		
+
 	    		JsonObject cart = new JsonParser().parse(rawData).getAsJsonObject();
 	    		
 	    			JsonArray jsonItemStacks = cart.get("item_stacks").getAsJsonArray();;
 
-	    			MarketCartInventory cartInventory = new MarketCartInventory();
+	    			MarketCartInventory cartInventory = new MarketCartInventory(player);
 
 					for(JsonElement element : jsonItemStacks) {
 						
@@ -74,16 +81,14 @@ public class MarketCartCommandHandler implements CommandHandler {
 						
 						ItemStack is = MarketDataUtils.fromMarketItemStack(jsonItemStack);
 						
-						cartInventory.spreadStack(is);
+						cartInventory.spreadStack(is, jsonItemStack.get("id").getAsLong());
 					}
-		
-				ep.displayGUIChest(cartInventory);
-	    	}
-			catch (ClientProtocolException e) {
+
+				cartInventories.put(player, cartInventory);
 				
-				e.printStackTrace();
-			}
-			catch (IOException e) {
+				player.openGui(ReCraftAccessor.instance, ReCraftGuiHandler.MARKET_CART, player.getEntityWorld(), -1, -1, -1);
+	    	}
+			catch(Exception e) {
 				
 				e.printStackTrace();
 			}

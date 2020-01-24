@@ -3,7 +3,7 @@ package com.inwaiders.plames.integration.minecraft.accessor.chat;
 import java.util.UUID;
 
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
-import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftHttpConnector;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.ReCraftHttpConnector;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;

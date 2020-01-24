@@ -1,4 +1,4 @@
-package com.inwaiders.plames.integration.minecraft.accessor.network;
+package com.inwaiders.plames.integration.minecraft.accessor.network.plames;
 
 import java.io.BufferedReader;
 import java.io.IOException;

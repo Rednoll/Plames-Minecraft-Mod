@@ -1,42 +1,56 @@
 package com.inwaiders.plames.integration.minecraft.accessor.inventory;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.ReCraftHttpConnector;
+
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
+import net.minecraft.init.Items;
+import net.minecraft.inventory.IInventoryChangedListener;
+import net.minecraft.inventory.InventoryBasic;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
-public class MarketCartInventory implements IInventory {
+public class MarketCartInventory extends InventoryBasic {
 
-	private ItemStack[] itemStacks = new ItemStack[getSizeInventory()];
+	private volatile EntityPlayer player = null;
 	
-	public MarketCartInventory() {
+	private volatile long[] itemStacksIds = new long[getSizeInventory()];
+	
+	public MarketCartInventory(EntityPlayer player) {
+		super("", true, 6*9);
 		
-		for(int i = 0;i<itemStacks.length;i++) {
+		this.player = player;
+		
+		for(int i = 0; i < itemStacksIds.length; i++) {
 			
-			itemStacks[i] = ItemStack.EMPTY;
+			itemStacksIds[i] = -1;
 		}
 	}
-	
-	public ItemStack spreadStack(ItemStack input) {
 
-		for(int i = 0;i<itemStacks.length;i++) {
+	public ItemStack spreadStack(ItemStack input, long stackId) {
+
+		for(int i = 0;i<getSizeInventory();i++) {
 			
 			if(input.getCount() == 0) return input;
 			
-			if(itemStacks[i].isItemEqual(input) && ItemStack.areItemStackTagsEqual(itemStacks[i], input)) {
+			if(getStackInSlot(i).isItemEqual(input) && ItemStack.areItemStackTagsEqual(getStackInSlot(i), input)) {
 				
-				addItemStack(i, input);
+				addItemStack(i, input, stackId);
 			}
 		}
 
-		for(int i = 0;i<itemStacks.length;i++) {
+		for(int i = 0;i<getSizeInventory();i++) {
 			
 			if(input.getCount() == 0) return input;
 			
-			if(itemStacks[i] == null || itemStacks[i].isEmpty()) {
+			if(getStackInSlot(i).isEmpty()) {
 				
-				addItemStack(i, input);
+				addItemStack(i, input, stackId);
 			}
 		}
 		
@@ -45,9 +59,9 @@ public class MarketCartInventory implements IInventory {
 	
 	public int getEmptySlot() {
 		
-		for(int i = 0;i<itemStacks.length;i++) {
+		for(int i = 0;i<getSizeInventory();i++) {
 		
-			if(itemStacks[i] == null || itemStacks[i].isEmpty()) {
+			if(getStackInSlot(i).isEmpty()) {
 				
 				return i;
 			}
@@ -56,27 +70,29 @@ public class MarketCartInventory implements IInventory {
 		return -1;
 	}
 	
-	public ItemStack addItemStack(int index, ItemStack is) {
+	public ItemStack addItemStack(int index, ItemStack is, long stackId) {
 		
 		int stackLimit = getInventoryStackLimit();
 		
-		if(itemStacks[index] == null || itemStacks[index].isEmpty()) {
+		if(getStackInSlot(index) == null || getStackInSlot(index).isEmpty()) {
 			
-			itemStacks[index] = is.splitStack(stackLimit);
+			setInventorySlotContents(index, is.splitStack(stackLimit));
+			itemStacksIds[index] = stackId;
 		}
 		else {
 			
-			if(itemStacks[index].isItemEqual(is) && ItemStack.areItemStackTagsEqual(itemStacks[index], is)) {
+			if(getStackInSlot(index).isItemEqual(is) && ItemStack.areItemStackTagsEqual(getStackInSlot(index), is)) {
 			
-				if(itemStacks[index].getCount() + is.getCount() <= stackLimit) {
+				if(getStackInSlot(index).getCount() + is.getCount() <= stackLimit) {
 					
+					getStackInSlot(index).setCount(getStackInSlot(index).getCount()+is.getCount());
 					is.setCount(0);
 					return is;
 				}
 				else {
 					
-					int needToFull = stackLimit - itemStacks[index].getCount();
-					itemStacks[index].setCount(stackLimit);
+					int needToFull = stackLimit - getStackInSlot(index).getCount();
+					getStackInSlot(index).setCount(stackLimit);
 					is.setCount(is.getCount()-needToFull);
 				}
 			}
@@ -87,6 +103,61 @@ public class MarketCartInventory implements IInventory {
 		}
 		
 		return is;
+	}
+	
+    @SideOnly(Side.SERVER)
+	@Override
+	public ItemStack decrStackSize(int index, int count) {
+    
+		ItemStack is = super.decrStackSize(index, count);
+    
+		if(itemStacksIds[index] != -1) {
+			
+			ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds[index], is.getCount());
+			this.itemStacksIds[index] = -1;
+		}
+
+		return is;
+	}
+	
+    @SideOnly(Side.SERVER)
+	@Override
+	public ItemStack removeStackFromSlot(int index) {
+    	
+		ItemStack is = super.removeStackFromSlot(index);
+	    
+		if(itemStacksIds[index] != -1) {
+			
+			ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds[index], is.getCount());
+			this.itemStacksIds[index] = -1;
+		}
+		
+		return is;
+    }
+	
+    @SideOnly(Side.SERVER)
+	@Override
+	public void setInventorySlotContents(int index, ItemStack stack) {
+		
+		try {
+			
+			if(stack.getItem() == Items.AIR && itemStacksIds[index] != -1) {
+				
+				ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds[index], getStackInSlot(index).getCount());
+			}
+		}
+		catch(IndexOutOfBoundsException e) {
+			
+		}
+		
+		super.setInventorySlotContents(index, stack);
+		this.itemStacksIds[index] = -1;
+	}
+	
+	@Override
+	public ItemStack getStackInSlot(int index) {
+    	
+		return index >= 0 && index < getSizeInventory() ? (ItemStack) super.getStackInSlot(index).copy() : ItemStack.EMPTY;
 	}
 	
 	@Override
@@ -105,120 +176,5 @@ public class MarketCartInventory implements IInventory {
 	public ITextComponent getDisplayName() {
 		
 		return new TextComponentString("Market Cart");
-	}
-
-	@Override
-	public int getSizeInventory() {
-		
-		return 9*6;
-	}
-
-	@Override
-	public boolean isEmpty() {
-		
-		for(ItemStack is : itemStacks) {
-			
-			if(is != null && !is.isEmpty()) {
-				
-				return false;
-			}
-		}
-		
-		return true;
-	}
-
-	@Override
-	public ItemStack getStackInSlot(int index) {
-
-		return itemStacks[index];
-	}
-
-	@Override
-	public ItemStack decrStackSize(int index, int count) {
-	
-		ItemStack result = itemStacks[index].splitStack(count);
-		
-		this.markDirty();
-		
-		return result;
-	}
-
-	@Override
-	public ItemStack removeStackFromSlot(int index) {
-		
-		ItemStack is = itemStacks[index];
-		itemStacks[index] = ItemStack.EMPTY;
-		
-		this.markDirty();
-		
-		return is;
-	}
-
-	@Override
-	public void setInventorySlotContents(int index, ItemStack stack) {
-		
-		itemStacks[index] = stack;
-	}
-
-	@Override
-	public int getInventoryStackLimit() {
-		
-		return 64;
-	}
-
-	@Override
-	public void markDirty() {
-		
-	}
-
-	@Override
-	public boolean isUsableByPlayer(EntityPlayer player) {
-		
-		return true;
-	}
-
-	@Override
-	public void openInventory(EntityPlayer player) {
-		
-		
-	}
-
-	@Override
-	public void closeInventory(EntityPlayer player) {
-		
-		
-	}
-
-	@Override
-	public boolean isItemValidForSlot(int index, ItemStack stack) {
-		
-		return false;
-	}
-
-	@Override
-	public int getField(int id) {
-		
-		return 0;
-	}
-
-	@Override
-	public void setField(int id, int value) {
-		
-		
-	}
-
-	@Override
-	public int getFieldCount() {
-		
-		return 0;
-	}
-
-	@Override
-	public void clear() {
-		
-		for(int i = 0;i<itemStacks.length;i++) {
-			
-			itemStacks[i] = ItemStack.EMPTY;
-		}
 	}
 }

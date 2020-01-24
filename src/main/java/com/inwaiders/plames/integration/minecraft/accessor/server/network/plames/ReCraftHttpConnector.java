@@ -1,4 +1,4 @@
-package com.inwaiders.plames.integration.minecraft.accessor.network;
+package com.inwaiders.plames.integration.minecraft.accessor.server.network.plames;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -30,16 +30,17 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
 import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandStub;
-import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.AllPlayersCountHandler;
-import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.CheckOnlineHandler;
-import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.CollectCartHandler;
-import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.ItemsHandler;
-import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.OnlinePlayersCountHandler;
-import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.PropertiesHandler;
-import com.inwaiders.plames.integration.minecraft.accessor.network.handlers.SendMessageHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers.AllPlayersCountHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers.CheckOnlineHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers.CollectCartHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers.ItemsHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers.OnlinePlayersCountHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers.PropertiesHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.handlers.SendMessageHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import net.minecraft.command.CommandHandler;
+import net.minecraft.entity.player.EntityPlayer;
 
 public class ReCraftHttpConnector {
 	
@@ -118,6 +119,37 @@ public class ReCraftHttpConnector {
 	public static void addTask(Task task) {
 		
 		requests.add(task);
+	}
+	
+	public static void decrItemStackSizeFromMarketCart(EntityPlayer ep, long itemStackId, int quantity) {
+		
+		Properties properties = ReCraftAccessor.PROPERTIES;
+		
+		JsonObject data = new JsonObject();
+			data.addProperty("server", Long.valueOf((String) properties.get("server-id")));
+			data.addProperty("secret", (String) properties.get("secret"));
+			data.addProperty("item_stack_id", itemStackId);
+			data.addProperty("quantity", quantity);
+			data.addProperty("player_name", ep.getGameProfile().getName());
+			data.addProperty("player_uuid", ep.getGameProfile().getId().toString());
+			
+		try {
+	
+			HttpPost post = new HttpPost(getMethodUrl("api/mc/ajax/server/player_cart/decr"));
+				post.setEntity(new StringEntity(data.toString()));
+				post.setHeader("Content-type", "application/json;charset=UTF-8");
+			
+			HttpClient client = HttpClients.createDefault();
+			CloseableHttpResponse response = (CloseableHttpResponse) client.execute(post);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+
+			EntityUtils.consume(response.getEntity());
+		}
+		catch(IOException e) {
+	
+			e.printStackTrace();
+		}
 	}
 	
 	public static void sendItemsSyncRequest(String totalHash, List<String> hashes) {
