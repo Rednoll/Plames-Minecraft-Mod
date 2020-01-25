@@ -10,6 +10,7 @@ import net.minecraft.init.Items;
 import net.minecraft.inventory.IInventoryChangedListener;
 import net.minecraft.inventory.InventoryBasic;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.fml.relauncher.Side;
@@ -19,57 +20,104 @@ public class MarketCartInventory extends InventoryBasic {
 
 	private volatile EntityPlayer player = null;
 	
-	private volatile long[] itemStacksIds = new long[getSizeInventory()];
+	private volatile List<Long> itemStacksIds = null;
 	
+	private List<ItemStack> allItemStacks;
+	
+	private int currentBeginRowIndex = 0;
+	
+	private int allStacksCount = 0;
+
 	public MarketCartInventory(EntityPlayer player) {
 		super("", true, 6*9);
 		
 		this.player = player;
-		
-		for(int i = 0; i < itemStacksIds.length; i++) {
-			
-			itemStacksIds[i] = -1;
-		}
-	}
 
+		allItemStacks = new ArrayList<>();
+		
+		itemStacksIds = new ArrayList<Long>();
+	}
+	
+	public int getFilledStacksPart() {
+		
+		return allItemStacks.size();
+	}
+	
+	public void scrollTo(int beginRowIndex) {
+		
+		for(int y = 0; y < 6 ; y++) {
+		
+			for(int x = 0; x < 9 ; x++) {
+				
+				if(allItemStacks.size() > (y+beginRowIndex)*9 + x) {
+					
+					super.setInventorySlotContents(y*9 + x, allItemStacks.get((y+beginRowIndex)*9 + x));
+				}
+				else {
+					
+					super.setInventorySlotContents(y*9 + x, ItemStack.EMPTY);
+				}
+			}
+		}
+		
+		this.currentBeginRowIndex = beginRowIndex;
+	}
+	
 	public ItemStack spreadStack(ItemStack input, long stackId) {
 
-		for(int i = 0;i<getSizeInventory();i++) {
+		for(ItemStack container : allItemStacks) {
 			
 			if(input.getCount() == 0) return input;
 			
-			if(getStackInSlot(i).isItemEqual(input) && ItemStack.areItemStackTagsEqual(getStackInSlot(i), input)) {
+			if(container.isItemEqual(input) && ItemStack.areItemStackTagsEqual(container, input)) {
 				
-				addItemStack(i, input, stackId);
+				addItemStack(container, input, stackId);
 			}
 		}
-
-		for(int i = 0;i<getSizeInventory();i++) {
+		
+		int lastCount = 0;
+		
+		while(lastCount != input.getCount()) {
+		
+			lastCount = input.getCount();
 			
-			if(input.getCount() == 0) return input;
-			
-			if(getStackInSlot(i).isEmpty()) {
-				
-				addItemStack(i, input, stackId);
-			}
+			addItemStack(null, input, stackId);
 		}
 		
 		return input;
 	}
 	
-	public int getEmptySlot() {
+	public void addItemStack(ItemStack container, ItemStack is, long stackId) {
 		
-		for(int i = 0;i<getSizeInventory();i++) {
+		if(is.isEmpty()) return;
 		
-			if(getStackInSlot(i).isEmpty()) {
-				
-				return i;
+		int stackLimit = getInventoryStackLimit();
+		
+		if(container == null || container.isEmpty()) {
+			
+			allItemStacks.add(is.splitStack(stackLimit));
+			itemStacksIds.add(stackId);
+		}
+		else {
+			
+			if(container.isItemEqual(is) && ItemStack.areItemStackTagsEqual(container, is)) {
+			
+				if(container.getCount() + is.getCount() <= stackLimit) {
+					
+					container.setCount(container.getCount()+is.getCount());
+					is.setCount(0);
+				}
+				else {
+					
+					int needToFull = stackLimit - container.getCount();
+					container.setCount(stackLimit);
+					is.setCount(is.getCount()-needToFull);
+				}
 			}
 		}
-		
-		return -1;
 	}
 	
+	/*
 	public ItemStack addItemStack(int index, ItemStack is, long stackId) {
 		
 		int stackLimit = getInventoryStackLimit();
@@ -104,6 +152,17 @@ public class MarketCartInventory extends InventoryBasic {
 		
 		return is;
 	}
+	*/
+	
+	public void setAllStacksCount(int i) {
+		
+		this.allStacksCount = i;
+	}
+	
+	public int getAllStacksCount() {
+	
+		return this.allStacksCount;
+	}
 	
     @SideOnly(Side.SERVER)
 	@Override
@@ -111,10 +170,13 @@ public class MarketCartInventory extends InventoryBasic {
     
 		ItemStack is = super.decrStackSize(index, count);
     
-		if(itemStacksIds[index] != -1) {
+		int idIndex = (currentBeginRowIndex*9)+index;
+		
+		if(itemStacksIds.size() > idIndex && itemStacksIds.get(idIndex) != -1) {
 			
-			ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds[index], is.getCount());
-			this.itemStacksIds[index] = -1;
+			ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds.get(idIndex), is.getCount());
+			itemStacksIds.set(idIndex, -1L);
+			allItemStacks.remove(idIndex);
 		}
 
 		return is;
@@ -126,10 +188,13 @@ public class MarketCartInventory extends InventoryBasic {
     	
 		ItemStack is = super.removeStackFromSlot(index);
 	    
-		if(itemStacksIds[index] != -1) {
+		int idIndex = (currentBeginRowIndex*9)+index;
+		
+		if(itemStacksIds.size() > idIndex && itemStacksIds.get(idIndex) != -1) {
 			
-			ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds[index], is.getCount());
-			this.itemStacksIds[index] = -1;
+			ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds.get(idIndex), is.getCount());
+			itemStacksIds.set(idIndex, -1L);
+			allItemStacks.remove(idIndex);
 		}
 		
 		return is;
@@ -139,19 +204,20 @@ public class MarketCartInventory extends InventoryBasic {
 	@Override
 	public void setInventorySlotContents(int index, ItemStack stack) {
 		
-		try {
+    	int idIndex = (currentBeginRowIndex*9)+index;
+		
+		if(stack.getItem() == Items.AIR && itemStacksIds.size() > idIndex && itemStacksIds.get(idIndex) != -1) {
 			
-			if(stack.getItem() == Items.AIR && itemStacksIds[index] != -1) {
-				
-				ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds[index], getStackInSlot(index).getCount());
-			}
-		}
-		catch(IndexOutOfBoundsException e) {
-			
+			ReCraftHttpConnector.decrItemStackSizeFromMarketCart(player, itemStacksIds.get(idIndex), getStackInSlot(index).getCount());
+			allItemStacks.remove(idIndex);
 		}
 		
 		super.setInventorySlotContents(index, stack);
-		this.itemStacksIds[index] = -1;
+		
+		if(itemStacksIds.size() > idIndex && itemStacksIds.get(idIndex) != -1) {
+			
+			itemStacksIds.set(idIndex, -1L);
+		}
 	}
 	
 	@Override

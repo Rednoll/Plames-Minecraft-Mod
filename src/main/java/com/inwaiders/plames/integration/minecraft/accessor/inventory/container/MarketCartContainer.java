@@ -14,7 +14,7 @@ public class MarketCartContainer extends Container {
 		
 		IInventory playerInv = player.inventory;
 		
-        this.numRows = marketInv.getSizeInventory() / 9;
+        this.numRows = 6;
         marketInv.openInventory(player);
         int i = (this.numRows - 4) * 18;
 
@@ -75,7 +75,7 @@ public class MarketCartContainer extends Container {
 
         return itemStack;
 	}
-
+	
 	@Override
 	public boolean canInteractWith(EntityPlayer playerIn) {
 		

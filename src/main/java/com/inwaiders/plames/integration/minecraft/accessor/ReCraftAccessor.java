@@ -23,6 +23,7 @@ import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandProcedure
 import com.inwaiders.plames.integration.minecraft.accessor.commands.CommandHandlerRegistry;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketCartCommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.gui.ReCraftGuiHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftNetworkWrapper;
 import com.inwaiders.plames.integration.minecraft.accessor.server.network.plames.ReCraftHttpConnector;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressBegin;
 import com.inwaiders.plames.integration.minecraft.stress.CommandStressPrefix;
@@ -69,6 +70,8 @@ public class ReCraftAccessor {
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
 
+    	ReCraftNetworkWrapper.init();
+    	
     	if(event.getSide() == Side.SERVER) {
     		
     		serverPreInit();

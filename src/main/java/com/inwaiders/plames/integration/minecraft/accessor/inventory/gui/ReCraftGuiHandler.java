@@ -39,7 +39,11 @@ public class ReCraftGuiHandler implements IGuiHandler {
 
 		if(id == MARKET_CART) {
 			
-			return new MarketCartGui(new MarketCartInventory(player));
+			MarketCartInventory inv = new MarketCartInventory(player);
+			
+			MarketCartCommandHandler.cartInventory = inv;
+			
+			return new MarketCartGui(inv);
 		}
 		
 		return null;

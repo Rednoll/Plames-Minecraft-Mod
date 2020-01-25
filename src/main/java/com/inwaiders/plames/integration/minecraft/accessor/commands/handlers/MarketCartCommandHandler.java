@@ -33,6 +33,8 @@ public class MarketCartCommandHandler implements CommandHandler {
 	
 	public static volatile Map<EntityPlayer, MarketCartInventory> cartInventories = new HashMap<EntityPlayer, MarketCartInventory>();
 	
+	public static volatile MarketCartInventory cartInventory = null;
+	
 	@Override
 	public boolean handle(EntityPlayer player, String[] args) {
 	
@@ -74,17 +76,19 @@ public class MarketCartCommandHandler implements CommandHandler {
 	    			JsonArray jsonItemStacks = cart.get("item_stacks").getAsJsonArray();;
 
 	    			MarketCartInventory cartInventory = new MarketCartInventory(player);
-
+	    			
 					for(JsonElement element : jsonItemStacks) {
 						
 						JsonObject jsonItemStack = element.getAsJsonObject();
 						
 						ItemStack is = MarketDataUtils.fromMarketItemStack(jsonItemStack);
-						
+
 						cartInventory.spreadStack(is, jsonItemStack.get("id").getAsLong());
 					}
 
 				cartInventories.put(player, cartInventory);
+	
+				cartInventory.scrollTo(0);
 				
 				player.openGui(ReCraftAccessor.instance, ReCraftGuiHandler.MARKET_CART, player.getEntityWorld(), -1, -1, -1);
 	    	}
