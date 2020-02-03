@@ -21,6 +21,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.inwaiders.plames.integration.minecraft.accessor.chat.CommandProcedureStub;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.CommandHandlerRegistry;
+import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketBuyCommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketCartCommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.gui.ReCraftGuiHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftNetworkWrapper;
@@ -205,6 +206,7 @@ public class ReCraftAccessor {
     	ReCraftHttpConnector.init();
     	
     	CommandHandlerRegistry.register("market", new MarketCartCommandHandler());
+    	CommandHandlerRegistry.register("market", new MarketBuyCommandHandler());
     	
     	ReCraftHttpConnector.loadCommandsFromPlames((CommandHandler) event.getServer().getCommandManager());
     	

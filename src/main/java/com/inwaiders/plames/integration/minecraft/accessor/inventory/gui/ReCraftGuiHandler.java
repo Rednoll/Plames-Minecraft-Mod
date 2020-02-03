@@ -23,12 +23,19 @@ public class ReCraftGuiHandler implements IGuiHandler {
 
 	public static final int MARKET_CART = 0;
 	
+	public static final int MARKET_BUY = 1;
+	
 	@Override
 	public Object getServerGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
 		
 		if(id == MARKET_CART) {
 			
 			return new MarketCartContainer(MarketCartCommandHandler.cartInventories.get(player), player);
+		}
+		
+		else if(id == MARKET_BUY) {
+			
+			return new MarketBuyGui();
 		}
 		
 		return null;
@@ -44,6 +51,11 @@ public class ReCraftGuiHandler implements IGuiHandler {
 			MarketCartCommandHandler.cartInventory = inv;
 			
 			return new MarketCartGui(inv);
+		}
+		
+		if(id == MARKET_BUY) {
+			
+			return new MarketBuyGui();
 		}
 		
 		return null;
