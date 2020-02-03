@@ -1,18 +1,9 @@
 package com.inwaiders.plames.integration.minecraft.accessor.inventory.gui;
 
-import java.io.IOException;
-
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketCartCommandHandler;
+import com.inwaiders.plames.integration.minecraft.accessor.inventory.MarketBuyInventory;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.MarketCartInventory;
+import com.inwaiders.plames.integration.minecraft.accessor.inventory.container.MarketBuyContainer;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.container.MarketCartContainer;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,7 +26,7 @@ public class ReCraftGuiHandler implements IGuiHandler {
 		
 		else if(id == MARKET_BUY) {
 			
-			return new MarketBuyGui();
+			return new MarketBuyContainer(new MarketBuyInventory(player), player);
 		}
 		
 		return null;
@@ -55,7 +46,7 @@ public class ReCraftGuiHandler implements IGuiHandler {
 		
 		if(id == MARKET_BUY) {
 			
-			return new MarketBuyGui();
+			return new MarketBuyGui(new MarketBuyInventory(player));
 		}
 		
 		return null;

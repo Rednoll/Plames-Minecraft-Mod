@@ -117,43 +117,6 @@ public class MarketCartInventory extends InventoryBasic {
 		}
 	}
 	
-	/*
-	public ItemStack addItemStack(int index, ItemStack is, long stackId) {
-		
-		int stackLimit = getInventoryStackLimit();
-		
-		if(getStackInSlot(index) == null || getStackInSlot(index).isEmpty()) {
-			
-			setInventorySlotContents(index, is.splitStack(stackLimit));
-			itemStacksIds[index] = stackId;
-		}
-		else {
-			
-			if(getStackInSlot(index).isItemEqual(is) && ItemStack.areItemStackTagsEqual(getStackInSlot(index), is)) {
-			
-				if(getStackInSlot(index).getCount() + is.getCount() <= stackLimit) {
-					
-					getStackInSlot(index).setCount(getStackInSlot(index).getCount()+is.getCount());
-					is.setCount(0);
-					return is;
-				}
-				else {
-					
-					int needToFull = stackLimit - getStackInSlot(index).getCount();
-					getStackInSlot(index).setCount(stackLimit);
-					is.setCount(is.getCount()-needToFull);
-				}
-			}
-			else {
-				
-				return is;
-			}
-		}
-		
-		return is;
-	}
-	*/
-	
 	public void setAllStacksCount(int i) {
 		
 		this.allStacksCount = i;
