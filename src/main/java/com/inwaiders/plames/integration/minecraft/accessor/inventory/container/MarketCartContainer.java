@@ -24,7 +24,7 @@ public class MarketCartContainer extends Container {
             	
             	this.addSlotToContainer(new MarketCartSlot(marketInv, x + y * 9, 8 + x * 18, 18 + y * 18));
 	        }
-        }
+        } 
 
         for(int y = 0; y < 3; y++) {
         	

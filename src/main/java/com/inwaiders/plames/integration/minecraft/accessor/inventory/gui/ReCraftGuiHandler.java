@@ -1,5 +1,6 @@
 package com.inwaiders.plames.integration.minecraft.accessor.inventory.gui;
 
+import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketBuyCommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketCartCommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.MarketBuyInventory;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.MarketCartInventory;
@@ -7,6 +8,8 @@ import com.inwaiders.plames.integration.minecraft.accessor.inventory.container.M
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.container.MarketCartContainer;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 
@@ -26,7 +29,11 @@ public class ReCraftGuiHandler implements IGuiHandler {
 		
 		else if(id == MARKET_BUY) {
 			
-			return new MarketBuyContainer(new MarketBuyInventory(player), player);
+			MarketBuyInventory inv = new MarketBuyInventory(player, 36);
+			
+			MarketBuyCommandHandler.buyInventories.put(player, inv);
+			
+			return new MarketBuyContainer(inv, player);
 		}
 		
 		return null;
@@ -44,9 +51,13 @@ public class ReCraftGuiHandler implements IGuiHandler {
 			return new MarketCartGui(inv);
 		}
 		
-		if(id == MARKET_BUY) {
+		else if(id == MARKET_BUY) {
 			
-			return new MarketBuyGui(new MarketBuyInventory(player));
+			MarketBuyInventory inv = new MarketBuyInventory(player, 36);
+			
+			MarketBuyCommandHandler.clientInventory = inv;
+			
+			return new MarketBuyGui(inv);
 		}
 		
 		return null;

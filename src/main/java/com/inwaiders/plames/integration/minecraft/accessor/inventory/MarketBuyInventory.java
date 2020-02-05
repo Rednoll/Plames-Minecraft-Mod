@@ -18,10 +18,25 @@ public class MarketBuyInventory extends InventoryBasic {
 
 	private volatile EntityPlayer player = null;
 
-	public MarketBuyInventory(EntityPlayer player) {
-		super("market.buy", true, 9);
+	public MarketBuyInventory(EntityPlayer player, int size) {
+		super("market.buy", true, size);
 		
 		this.player = player;
+	}
+
+	public int getFilledStacks() {
+		
+		int result = 0;
+		
+		for(int i = 0; i < this.getSizeInventory(); i++) {
+			
+			if(!getStackInSlot(i).isEmpty()) {
+				
+				result++;
+			}
+		}
+		
+		return result;
 	}
 	
 	@Override

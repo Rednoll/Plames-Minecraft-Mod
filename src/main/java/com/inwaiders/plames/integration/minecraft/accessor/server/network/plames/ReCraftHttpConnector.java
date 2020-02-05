@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -119,6 +120,67 @@ public class ReCraftHttpConnector {
 	public static void addTask(Task task) {
 		
 		requests.add(task);
+	}
+	
+	public static JsonObject getOffer(long id) {
+		
+		try {
+
+			HttpGet get = new HttpGet(getMethodUrl("api/market/rest/offers/"+id));
+	
+	    	CloseableHttpClient httpClient = HttpClients.createDefault();
+	    	
+			CloseableHttpResponse response = httpClient.execute(get);
+		
+	    		HttpEntity entity = response.getEntity();
+	    		
+	    		String rawData = EntityUtils.toString(entity);
+	  
+	    		EntityUtils.consume(entity);
+	    		
+	    		if(rawData == null || rawData.isEmpty()) {
+	    			
+	    			return null;
+	    		}
+	    		   		
+	    	JsonObject jsonOffer = new JsonParser().parse(rawData).getAsJsonObject();
+	    	
+	    	return jsonOffer;
+		}
+		catch(Exception e) {
+			
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	public static JsonArray searchOffers(String name, int pageNumber, int pageSize) {
+		
+		try {
+
+			HttpGet get = new HttpGet(getMethodUrl("/web/controller/ajax/market/offer?page="+pageNumber+"&pageSize="+pageSize+"&name="+name));
+	
+	    	CloseableHttpClient httpClient = HttpClients.createDefault();
+	    	
+			CloseableHttpResponse response = httpClient.execute(get);
+		
+	    		HttpEntity entity = response.getEntity();
+	    		
+	    		String rawData = EntityUtils.toString(entity);
+	  
+	    		EntityUtils.consume(entity);
+	    		
+	    	JsonArray array = new JsonParser().parse(rawData).getAsJsonArray();
+	    	
+	    	return array;
+		}
+		catch(Exception e) {
+			
+			e.printStackTrace();
+		}
+		
+		return new JsonArray();
 	}
 	
 	public static void decrItemStackSizeFromMarketCart(EntityPlayer ep, long itemStackId, int quantity) {
