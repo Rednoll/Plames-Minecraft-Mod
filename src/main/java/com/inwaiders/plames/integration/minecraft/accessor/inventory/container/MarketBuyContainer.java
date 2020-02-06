@@ -24,7 +24,7 @@ public class MarketBuyContainer extends Container {
         	
         	for(int x = 0; x < 9; x++) {
         		
-        		this.addSlotToContainer(new MarketBuySlot(buyInv, x + y * 9, 112 + x * 18, 17 + y * 18));
+        		this.addSlotToContainer(new MarketBuySlot(buyInv, x + y * 9, 112 + x * 18, 21 + y * 18));
         	}
         }
         

@@ -23,6 +23,18 @@ public class MarketBuyInventory extends InventoryBasic {
 		
 		this.player = player;
 	}
+	
+	public ItemStack spreadStack(ItemStack input) {
+
+		int limit = Math.min(getInventoryStackLimit(), input.getMaxStackSize());
+		
+		while(input.getCount() > 0) {
+
+			addItem(input.splitStack(limit));
+		}
+		
+		return input;
+	}
 
 	public int getFilledStacks() {
 		

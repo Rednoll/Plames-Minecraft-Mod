@@ -37,6 +37,10 @@ public class MarketBuyGui extends GuiContainer {
 	private List<JsonObject> currentOffers = new ArrayList<>();
 	private List<GuiButton> offersButtons = new ArrayList<>();
 	
+	private JsonObject currentOffer = null;
+	
+	private GuiButton buyButton = null;
+	
 	public MarketBuyGui(IInventory buyInventory) {
 		super(new MarketBuyContainer(buyInventory, Minecraft.getMinecraft().player));
 		
@@ -73,6 +77,11 @@ public class MarketBuyGui extends GuiContainer {
 			this.addButton(searchButton);
 			offersButtons.add(searchButton);
 		}
+		
+		buyButton = new GuiButton(this.buttonList.size(), guiLeft + 111 + 162 - 45, 0, "Buy");
+			buyButton.setWidth(45);
+		
+		this.addButton(buyButton);
 	}
 	
 	protected void actionPerformed(GuiButton button) throws IOException {
@@ -110,6 +119,8 @@ public class MarketBuyGui extends GuiContainer {
 			}
 		}
 		*/
+		
+		this.currentOffer = offer;
 		
 		ReCraftNetworkWrapper.sendToServer(new MarketBuyViewOfferRequest(offer.get("id").getAsLong()));
 	}
@@ -153,8 +164,7 @@ public class MarketBuyGui extends GuiContainer {
 	
 	protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
     	
-//		this.fontRenderer.drawString(this.marketInventory.getDisplayName().getUnformattedText(), 8, 6, 4210752);
-    }
+	}
 
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY){
@@ -184,10 +194,17 @@ public class MarketBuyGui extends GuiContainer {
 	        
 	        for(int i = 0; i < numRows; i++) {
 	        	
-	        	this.drawTexturedModalRect(xBegin + 111, yBegin + 16 + i*18, 0, 154, 162, 18);
+	        	this.drawTexturedModalRect(xBegin + 111, yBegin + 20 + i*18, 0, 154, 162, 18);
 	        }
+	        
+	        buyButton.y = guiTop + 24 + numRows*18 + 5;
         
 		searchField.drawTextBox();
+		
+		if(currentOffer != null) {
+			
+			this.fontRenderer.drawString(currentOffer.get("name").getAsString(), xBegin + 111, yBegin + 8, 4210752);
+		}
 		
 		for(int i = 0; i < offersButtons.size(); i++) {
 			

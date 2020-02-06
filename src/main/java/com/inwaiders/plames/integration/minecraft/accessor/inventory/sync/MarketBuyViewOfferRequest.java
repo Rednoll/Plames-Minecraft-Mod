@@ -65,11 +65,8 @@ public class MarketBuyViewOfferRequest implements IMessage {
 					jsonItemStack.add("item", new Gson().fromJson((jsonItemStack.get("item").getAsJsonObject().get("metadata").getAsString()), JsonObject.class));
 					
 					ItemStack is = MarketDataUtils.fromMarketItemStack(jsonItemStack);
-				
-					while(is.getCount() > 0) {
 					
-						is = inventory.addItem(is);
-					}
+					inventory.spreadStack(is);
 				}
 				
 			return null;
