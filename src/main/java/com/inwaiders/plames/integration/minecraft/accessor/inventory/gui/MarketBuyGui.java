@@ -3,7 +3,10 @@ package com.inwaiders.plames.integration.minecraft.accessor.inventory.gui;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.lwjgl.input.Keyboard;
 
@@ -11,6 +14,7 @@ import com.google.gson.JsonObject;
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
 import com.inwaiders.plames.integration.minecraft.accessor.commands.handlers.MarketBuyCommandHandler;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.container.MarketBuyContainer;
+import com.inwaiders.plames.integration.minecraft.accessor.inventory.sync.MarketBuyRequest;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.sync.MarketBuySearchRequest;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.sync.MarketBuyViewOfferRequest;
 import com.inwaiders.plames.integration.minecraft.accessor.network.ReCraftNetworkWrapper;
@@ -30,12 +34,13 @@ public class MarketBuyGui extends GuiContainer {
 	private static final ResourceLocation GUI_TEXTURE_MAIN = new ResourceLocation(ReCraftAccessor.MODID, "textures/gui/market_buy_main.png");
     
 	private GuiTextField searchField = null;
-
+	private GuiTextField quantityField= null;
+	
 	private int searchPageSize = 5;
 	private int searchPageNumber = 0;
 	
 	private List<JsonObject> currentOffers = new ArrayList<>();
-	private List<GuiButton> offersButtons = new ArrayList<>();
+	private Map<GuiButton, Integer> offersButtons = new HashMap<>();
 	
 	private JsonObject currentOffer = null;
 	
@@ -65,34 +70,53 @@ public class MarketBuyGui extends GuiContainer {
         
 		searchField = new GuiTextField(0, this.fontRenderer, guiLeft - 25 + 8, guiTop + 8, 100, this.fontRenderer.FONT_HEIGHT + 4);
 			searchField.setMaxStringLength(32);
-			searchField.setCanLoseFocus(false);
 			searchField.setFocused(true);
 			searchField.setTextColor(Color.WHITE.getRGB());
-	
+			
 		for(int i = 0; i < searchPageSize; i++) {
 			
-			GuiButton searchButton = new GuiButton(1+i, searchField.x, searchField.y + searchField.height + 8 + 20*i + 4*i, "---");
+			GuiButton searchButton = new GuiButton(this.buttonList.size(), searchField.x, searchField.y + searchField.height + 8 + 20*i + 4*i, "---");
 				searchButton.setWidth(100);
 	
 			this.addButton(searchButton);
-			offersButtons.add(searchButton);
+			offersButtons.put(searchButton, i);
 		}
 		
 		buyButton = new GuiButton(this.buttonList.size(), guiLeft + 111 + 162 - 45, 0, "Buy");
 			buyButton.setWidth(45);
 		
 		this.addButton(buyButton);
+		
+		quantityField = new GuiTextField(1, this.fontRenderer, buyButton.x - 40 - 5, 0, 40, this.fontRenderer.FONT_HEIGHT + 4);
+			quantityField.setMaxStringLength(4);
+			quantityField.setTextColor(Color.WHITE.getRGB());
+			quantityField.setText("1");
+			quantityField.height = buyButton.height - 2;
+	
+		//
+		ReCraftNetworkWrapper.sendToServer(new MarketBuySearchRequest("", 0, searchPageSize));
 	}
 	
 	protected void actionPerformed(GuiButton button) throws IOException {
 		
-		int listIndex = button.id-1;
+		if(offersButtons.containsKey(button)) {
 
-		if(currentOffers.size() > listIndex) {
+			int index = offersButtons.get(button);
 			
-			JsonObject offer = currentOffers.get(listIndex);
-					
-			viewOffer(offer);
+			if(currentOffers.size() > index) {
+				
+				JsonObject offer = currentOffers.get(index);
+				
+				viewOffer(offer);
+			}
+		}
+		
+		if(buyButton == button) {
+
+			if(currentOffer != null) {
+			
+				ReCraftNetworkWrapper.sendToServer(new MarketBuyRequest(currentOffer.get("name").getAsString(), Integer.valueOf(quantityField.getText())));
+			}
 		}
 	}
 	
@@ -130,6 +154,11 @@ public class MarketBuyGui extends GuiContainer {
 		
 		searchField.textboxKeyTyped(typedChar, keyCode);
 		
+		if("0123456789".contains(String.valueOf(typedChar))) { // Only arabic! (Character.isDigit - invalid)
+			
+			quantityField.textboxKeyTyped(typedChar, keyCode);
+		}
+		
 		if(this.searchField.isFocused()) {
 			
 			String text = this.searchField.getText();
@@ -140,7 +169,7 @@ public class MarketBuyGui extends GuiContainer {
 			}
 			else {
 				
-				currentOffers.clear();
+				ReCraftNetworkWrapper.sendToServer(new MarketBuySearchRequest("", 0, searchPageSize));
 			}
 		}
 		
@@ -160,6 +189,7 @@ public class MarketBuyGui extends GuiContainer {
 		super.mouseClicked(x, y, btn);
 		
 		searchField.mouseClicked(x, y, btn);
+		quantityField.mouseClicked(x, y, btn);
 	}
 	
 	protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
@@ -198,21 +228,24 @@ public class MarketBuyGui extends GuiContainer {
 	        }
 	        
 	        buyButton.y = guiTop + 24 + numRows*18 + 5;
-        
+	        quantityField.y = buyButton.y + 1;
+	        
 		searchField.drawTextBox();
+		quantityField.drawTextBox();
 		
 		if(currentOffer != null) {
 			
 			this.fontRenderer.drawString(currentOffer.get("name").getAsString(), xBegin + 111, yBegin + 8, 4210752);
 		}
 		
-		for(int i = 0; i < offersButtons.size(); i++) {
+		for(Entry<GuiButton, Integer> entry : offersButtons.entrySet()) {
 			
-			GuiButton offerButton = offersButtons.get(i);
-		
-			if(currentOffers.size() > i) {
+			GuiButton offerButton = entry.getKey();
+			int index = entry.getValue();
 			
-				offerButton.displayString = currentOffers.get(i).get("name").getAsString();
+			if(currentOffers.size() > index) {
+			
+				offerButton.displayString = currentOffers.get(index).get("name").getAsString();
 			}
 			else {
 				

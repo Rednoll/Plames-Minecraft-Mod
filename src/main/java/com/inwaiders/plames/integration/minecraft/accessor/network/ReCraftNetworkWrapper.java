@@ -1,6 +1,7 @@
 package com.inwaiders.plames.integration.minecraft.accessor.network;
 
 import com.inwaiders.plames.integration.minecraft.accessor.ReCraftAccessor;
+import com.inwaiders.plames.integration.minecraft.accessor.inventory.sync.MarketBuyRequest;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.sync.MarketBuySearchRequest;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.sync.MarketBuySearchResponse;
 import com.inwaiders.plames.integration.minecraft.accessor.inventory.sync.MarketBuyViewOfferRequest;
@@ -37,6 +38,9 @@ public class ReCraftNetworkWrapper {
 		
 		snw.registerMessage(MarketBuyViewOfferRequest.Handler.class, 
 				MarketBuyViewOfferRequest.class, 5, Side.SERVER);
+	
+		snw.registerMessage(MarketBuyRequest.Handler.class, 
+				MarketBuyRequest.class, 6, Side.SERVER);
 	}
 	
 	public static void sendToServer(IMessage message) {
